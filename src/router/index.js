@@ -1,5 +1,11 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import { createRouter, createWebHistory } from 'vue-router';
+import HomeView from '../views/HomeView.vue';
+import LoginView from '../views/LoginView.vue';
+import RegisterView from '../views/RegisterView.vue';
+import NewProfileView from '../views/NewProfileView.vue';
+import ProfileDetailsView from '../views/ProfileDetailsView.vue';
+import UserProfileView from '../views/UserProfileView.vue';
+import FavouritesView from '../views/FavouritesView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -10,14 +16,38 @@ const router = createRouter({
       component: HomeView
     },
     {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue')
+      path: '/register',
+      name: 'register',
+      component: RegisterView
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView
+    },
+    {
+      path: '/profiles/new',
+      name: 'new-profile',
+      component: NewProfileView
+    },
+    {
+      path: '/profiles/:id',
+      name: 'profile-details',
+      component: ProfileDetailsView,
+      props: true
+    },
+    {
+      path: '/users/:id',
+      name: 'user-profile',
+      component: UserProfileView,
+      props: true
+    },
+    {
+      path: '/profiles/favourites',
+      name: 'favourites',
+      component: FavouritesView
     }
   ]
-})
+});
 
-export default router
+export default router;

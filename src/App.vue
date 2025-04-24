@@ -1,21 +1,25 @@
-<script setup>
-import { RouterLink, RouterView } from 'vue-router'
-import AppHeader from "@/components/AppHeader.vue";
-import AppFooter from "@/components/AppFooter.vue";
-</script>
-
 <template>
-  <AppHeader />
-
-  <main>
-    <RouterView />
-  </main>
-  
-  <AppFooter />
+  <div id="app">
+    <Navbar />
+    <router-view />
+  </div>
 </template>
 
+<script>
+import Navbar from "./components/Navbar.vue";
+
+export default {
+  name: "App",
+  components: {
+    Navbar,
+  },
+};
+</script>
+
 <style>
+/* Optional basic styling */
 body {
-  padding-top: 75px;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  background-color: #f8f9fa;
 }
 </style>
