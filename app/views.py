@@ -80,9 +80,8 @@ def register():
 
     if Users.query.filter_by(username=username).first() or Users.query.filter_by(email=email).first():
         return jsonify(message="User with this username or email already exists"), 409
-
-    hashed_password = Users.hash_password(password)  
-    user = Users(username=username, password=hashed_password, name=name, email=email, photo=photo)
+ 
+    user = Users(username=username, password=password, name=name, email=email, photo=photo)
     db.session.add(user)
     db.session.commit()
 

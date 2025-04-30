@@ -18,8 +18,6 @@ class Users(db.Model):
     profiles = db.relationship('Profile', backref='user', lazy=True)
     favorites = db.relationship('Favourite', foreign_keys='Favourite.user_id_fk', backref='user', lazy=True)
 
-    def hash_password(password):
-        return generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password, password)
@@ -30,9 +28,6 @@ class Users(db.Model):
         self.name = name
         self.email = email
         self.photo = photo
-
-    def check_password(self, password):
-        return check_password_hash(self.password, password)
 
     def is_authenticated(self):
         return True

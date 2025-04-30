@@ -87,7 +87,7 @@ export default {
       this.error = null;
 
       apiClient
-        .post("api/auth/login", this.credentials)
+        .post("/api/auth/login", this.credentials)
         .then((response) => {
           // Save token and user_id to local storage
           localStorage.setItem("token", response.data.token);
