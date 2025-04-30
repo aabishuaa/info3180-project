@@ -177,21 +177,24 @@ export default {
           console.error("Failed to get CSRF token", error);
         });
     },
+
     async fetchUserData() {
       try {
         const userId = localStorage.getItem("user_id");
+        // 1) fetch the user object (including its profiles array)
         const resUser = await apiClient.get(`/api/users/${userId}`);
         this.user = resUser.data.user;
-        const resProfiles = await apiClient.get("/api/profiles");
-        this.profiles = resProfiles.data.profiles.filter(
-          (p) => p.user_id_fk === parseInt(userId)
-        );
+
+        // 2) pull out that user.profiles array directly
+        //    (each {id, description, …} comes from your backend)
+        this.profiles = resUser.data.user.profiles || [];
       } catch (err) {
         this.error = err.response?.data?.message || "Failed to load user data.";
       } finally {
         this.loading = false;
       }
     },
+
     handleFileChange(e) {
       this.photoFile = e.target.files[0];
     },
@@ -204,9 +207,7 @@ export default {
         .post(`/api/users/${userId}/photo`, formData)
         .then((response) => {
           this.uploadMessage = response.data.message;
-          // update the displayed photo
           this.user.photo = response.data.photo;
-          // bump key to force reload of <img>
           this.photoKey = Date.now();
         })
         .catch((error) => {
@@ -214,15 +215,17 @@ export default {
             error.response?.data?.errors?.[0] || "Upload failed.";
         });
     },
+
     async findMatches(id) {
       this.showMatches = true;
       try {
         const res = await apiClient.get(`/api/profiles/matches/${id}`);
         this.matches = res.data.matches;
       } catch (err) {
-        console.error(err.response?.data || err);
+        console.error(err);
       }
     },
+
     formatDate(d) {
       return new Date(d).toLocaleDateString();
     },

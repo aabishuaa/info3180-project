@@ -152,30 +152,49 @@ UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
+from sqlalchemy import desc
+
 @app.route('/api/profiles', methods=['GET'])
 @token_required
 def get_profiles(current_user):
-    limit = request.args.get('limit', 20, type=int)
+    # read limit & offset
+    limit  = request.args.get('limit', 4, type=int)
     offset = request.args.get('offset', 0, type=int)
 
-    profiles = Profile.query.offset(offset).limit(limit).all()
+    # base query: exclude your own profiles
+    query = Profile.query.filter(Profile.user_id_fk != current_user.id)
+
+    # order by descending id (newest first).  If you have Profile.date_created you can use that.
+    query = query.order_by(desc(Profile.id))
+
+    # apply offset/limit
+    profiles = query.offset(offset).limit(limit).all()
+
     profiles_data = [{
-        'id': profile.id,
-        'user_id_fk': profile.user_id_fk,
-        'description': profile.description,
-        'parish': profile.parish,
-        'sex': profile.sex,
-        'race': profile.race,
-        'birth_year': profile.birth_year,
-        'height': profile.height,
-        'photo': profile.user.photo if profile.user else None,
+        'id':           p.id,
+        'user_id_fk':   p.user_id_fk,
+        'description':  p.description,
+        'parish':       p.parish,
+        'sex':          p.sex,
+        'race':         p.race,
+        'birth_year':   p.birth_year,
+        'height':       p.height,
+        'fav_cuisine':  p.fav_cuisine,
+        'fav_colour':   p.fav_colour,
+        'fav_school_subject': p.fav_school_subject,
+        'political':    p.political,
+        'religious':    p.religious,
+        'family_oriented': p.family_oriented,
+        'photo':        p.user.photo if p.user else None,
+        # include user info if you like
         'user': {
-            'name': profile.user.name if profile.user else "Unknown",
-            'photo': profile.user.photo if profile.user else None
+          'name': p.user.name if p.user else None,
+          'date_joined': p.user.date_joined.isoformat() if p.user else None
         }
-    } for profile in profiles]
+    } for p in profiles]
 
     return jsonify(profiles=profiles_data)
+
 
 
 
@@ -270,46 +289,49 @@ def favourite_profile(current_user, user_id):
 @app.route('/api/profiles/matches/<int:profile_id>', methods=['GET'])
 @token_required
 def get_matches(current_user, profile_id):
-    my_profile = Profile.query.get_or_404(profile_id)
-    all_profiles = Profile.query.filter(
-        Profile.id != my_profile.id,
+    # load the “source” profile
+    me = Profile.query.get_or_404(profile_id)
+    # grab every other profile (and not your own user)
+    candidates = Profile.query.filter(
+        Profile.id != me.id,
         Profile.user_id_fk != current_user.id
     ).all()
 
-    matches = []
-    for p in all_profiles:
-        # age difference in years
-        age_diff = abs(my_profile.birth_year - p.birth_year)
-        # height is stored as feet (float), so *12 to get inches
-        height_diff_inches = abs(my_profile.height - p.height) * 12
+    results = []
+    for p in candidates:
+        # 1) age within 5 years
+        age_ok = abs(me.birth_year - p.birth_year) <= 5
 
-        # count how many of the six fields match
+        # 2) same user filtered out above
+
+        # 3) height difference in inches (height stored as float feet)
+        height_diff_inches = abs(me.height - p.height) * 12
+        height_ok = 3 <= height_diff_inches <= 10
+
+        # 4) count matches of the six fields
         field_matches = sum([
-            my_profile.fav_cuisine        == p.fav_cuisine,
-            my_profile.fav_colour         == p.fav_colour,
-            my_profile.fav_school_subject == p.fav_school_subject,
-            my_profile.political          == p.political,
-            my_profile.religious          == p.religious,
-            my_profile.family_oriented    == p.family_oriented,
+            me.fav_cuisine       == p.fav_cuisine,
+            me.fav_colour        == p.fav_colour,
+            me.fav_school_subject== p.fav_school_subject,
+            me.political         == p.political,
+            me.religious         == p.religious,
+            me.family_oriented   == p.family_oriented,
         ])
+        fields_ok = field_matches >= 3
 
-        # apply your three rules
-        if (
-            age_diff <= 5 and
-            3 <= height_diff_inches <= 10 and
-            field_matches >= 3
-        ):
-            matches.append({
-                'id':          p.id,
-                'description': p.description,
-                'parish':      p.parish,
-                'sex':         p.sex,
-                'race':        p.race,
-                'birth_year':  p.birth_year,
-                'height':      p.height,
+        if age_ok and height_ok and fields_ok:
+            results.append({
+                'id':           p.id,
+                'description':  p.description,
+                'parish':       p.parish,
+                'sex':          p.sex,
+                'race':         p.race,
+                'birth_year':   p.birth_year,
+                'height':       p.height,
+                'matches':      field_matches
             })
 
-    return jsonify(matches=matches)
+    return jsonify(matches=results)
 
 
 @app.route('/api/search', methods=['GET'])

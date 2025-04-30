@@ -80,8 +80,8 @@ export default {
   components: { SearchBar },
   data() {
     return {
-      allProfiles: [], // ← full list for searching
-      latestProfiles: [], // ← first 4
+      allProfiles: [], // full list for searching
+      latestProfiles: [], // the 4 most recent
       searchQuery: "",
       searchResults: [],
       userId: null,
@@ -109,22 +109,22 @@ export default {
     this.createSparkleEffect();
   },
   methods: {
+    // ← UPDATED: ask backend for ?limit=4
     fetchProfiles() {
       const me = parseInt(this.userId, 10);
       apiClient
-        .get("/api/profiles")
+        .get("/api/profiles", { params: { limit: 4 } })
         .then((res) => {
-          // build the full list excluding current user
           this.allProfiles = (res.data.profiles || res.data).filter(
             (p) => p.user_id_fk !== me
           );
-
-          // show the first 4 by default
-          this.latestProfiles = this.allProfiles.slice(0, 4);
+          this.latestProfiles = this.allProfiles; // already only 4
           this.searchResults = this.allProfiles;
         })
         .catch(console.error);
     },
+
+    // ← UPDATED: include name & birth_year in the search
     handleSearch() {
       const q = this.searchQuery.trim().toLowerCase();
       if (!q) {
@@ -135,18 +135,23 @@ export default {
         const desc = p.description.toLowerCase();
         const race = p.race.toLowerCase();
         const sex = p.sex.toLowerCase();
+        const name = p.user?.name.toLowerCase() || "";
+        const birth = String(p.birth_year);
         return (
-          desc.includes(q) || race.includes(q) || sex === q // ← exact match on sex
+          desc.includes(q) ||
+          race.includes(q) ||
+          sex === q ||
+          name.includes(q) ||
+          birth.includes(q)
         );
       });
     },
+
     createSparkleEffect() {
       const container = document.querySelector(".sparkle-container");
       if (!container) return;
-
       const sparkles = container.querySelectorAll(".sparkle");
       const colors = ["#04acb0", "#fb9623", "#ffbd0f", "#ff7455"];
-
       sparkles.forEach((sparkle) => {
         sparkle.style.top = `${Math.random() * 100}%`;
         sparkle.style.left = `${Math.random() * 100}%`;
@@ -154,7 +159,6 @@ export default {
         sparkle.style.height = `${Math.random() * 4 + 1}px`;
         sparkle.style.animationDelay = `${Math.random() * 10}s`;
         sparkle.style.animationDuration = `${Math.random() * 10 + 5}s`;
-
         const randomColor = colors[Math.floor(Math.random() * colors.length)];
         sparkle.style.backgroundColor = randomColor;
         sparkle.style.boxShadow = `0 0 8px 2px ${randomColor}80`;
