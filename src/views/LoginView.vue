@@ -1,62 +1,70 @@
 <template>
   <div class="login-page">
-    <!-- Background Elements -->
-    <div class="background-elements">
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
-      <div class="blob blob-3"></div>
-      <div class="blob blob-4"></div>
-    </div>
+    <!-- Fixed background with gradient -->
+    <div class="background"></div>
 
-    <!-- Login Content -->
-    <div class="login-container">
-      <div class="login-content">
-        <h2 class="welcome-text">Welcome Back</h2>
-        <p class="subtitle">Sign in to your Jam-Date account</p>
+    <!-- Animated blob background elements -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
 
-        <div class="login-form-wrapper">
-          <div
-            v-if="error"
-            class="alert alert-danger animate__animated animate__shakeX"
-          >
-            {{ error }}
-          </div>
+    <!-- Main content -->
+    <div class="page-content">
+      <!-- Login Section -->
+      <div class="login-section">
+        <div class="login-container">
+          <h2 class="welcome-text">Welcome Back</h2>
+          <p class="subtitle">Sign in to your Jam-Date account</p>
 
-          <form @submit.prevent="login" class="login-form">
-            <div class="form-group">
-              <label for="username">Username</label>
-              <input
-                type="text"
-                id="username"
-                v-model="credentials.username"
-                required
-                placeholder="Enter your username"
-              />
+          <div class="login-form-wrapper">
+            <div
+              v-if="error"
+              class="alert alert-danger animate__animated animate__shakeX"
+            >
+              {{ error }}
             </div>
 
-            <div class="form-group">
-              <label for="password">Password</label>
-              <input
-                type="password"
-                id="password"
-                v-model="credentials.password"
-                required
-                placeholder="Enter your password"
-              />
+            <form @submit.prevent="login" class="login-form">
+              <div class="form-group">
+                <label for="username">Username</label>
+                <input
+                  type="text"
+                  id="username"
+                  v-model="credentials.username"
+                  required
+                  placeholder="Enter your username"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="password">Password</label>
+                <input
+                  type="password"
+                  id="password"
+                  v-model="credentials.password"
+                  required
+                  placeholder="Enter your password"
+                />
+              </div>
+
+              <button
+                type="submit"
+                class="sign-in-btn"
+                :disabled="isSubmitting"
+              >
+                <span v-if="isSubmitting">
+                  <span class="spinner"></span>
+                  Signing in...
+                </span>
+                <span v-else>Sign In</span>
+              </button>
+            </form>
+
+            <div class="register-prompt">
+              Don't have an account?
+              <router-link to="/register">Register</router-link>
             </div>
-
-            <button type="submit" class="sign-in-btn" :disabled="isSubmitting">
-              <span v-if="isSubmitting">
-                <span class="spinner"></span>
-                Signing in...
-              </span>
-              <span v-else>Sign In</span>
-            </button>
-          </form>
-
-          <div class="register-prompt">
-            Don't have an account?
-            <router-link to="/register">Register</router-link>
           </div>
         </div>
       </div>
@@ -118,39 +126,44 @@ export default {
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
 @import url("https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css");
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 .login-page {
   font-family: "Poppins", sans-serif;
   min-height: 100vh;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(240, 240, 240, 0.9) 100%
-  );
   position: relative;
   overflow: hidden;
   color: #333;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  width: 100%;
 }
 
-/* Background Elements */
-.background-elements {
-  position: absolute;
-  width: 100%;
-  height: 100%;
+/* Fixed background with gradient */
+.background {
+  position: fixed;
   top: 0;
   left: 0;
-  z-index: 1;
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(240, 240, 240, 0.9) 100%
+  );
+  z-index: -2;
 }
 
+/* Animated blob background elements */
 .blob {
-  position: absolute;
+  position: fixed;
   border-radius: 50%;
   opacity: 0.5;
   filter: blur(60px);
+  z-index: -1;
 }
 
 .blob-1 {
@@ -201,19 +214,27 @@ export default {
   }
 }
 
-/* Login Content */
-.login-container {
+/* Main content */
+.page-content {
   position: relative;
-  z-index: 2;
-  width: 100%;
-  padding: 0 20px;
-  box-sizing: border-box;
-  margin-top: -50px; /* Adjust to account for header */
+  z-index: 1;
+  min-height: 100vh;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
 }
 
-.login-content {
+/* Login container */
+.login-section {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.login-container {
   width: 100%;
   max-width: 450px;
   text-align: center;
@@ -234,8 +255,6 @@ export default {
 }
 
 .login-form-wrapper {
-  position: relative;
-  z-index: 2;
   background: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.7) 0%,

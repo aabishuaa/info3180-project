@@ -1,16 +1,12 @@
 <template>
   <div class="home">
-    <!-- Search Section -->
-    <section class="search-section py-4">
-      <SearchBar v-model="searchQuery" @submit="handleSearch" />
-    </section>
-
     <!-- Hero Section with Sparkles -->
     <section class="hero">
       <div class="sparkle-container">
         <div v-for="n in 50" :key="n" class="sparkle"></div>
       </div>
       <div class="hero-content">
+        <img :src="jamDateLogo" alt="Jam-Date Logo" class="logo" />
         <h1>Welcome to Jam-Date</h1>
         <p>
           Jam-Date is a dating application that helps users find compatible
@@ -35,7 +31,7 @@
     <!-- Profiles Section -->
     <section class="profiles-section" v-if="isAuthenticated">
       <h2 class="section-title" v-if="profilesToShow.length">
-        {{ searchQuery ? "Search Results" : "Latest Profiles" }}
+        Latest Profiles
       </h2>
 
       <div class="profiles-grid" v-if="profilesToShow.length">
@@ -72,17 +68,16 @@
 
 <script>
 import apiClient from "@/api.js";
-import SearchBar from "@/components/SearchBar.vue";
-import defaultProfile from "@/assets/default-profile.png";
+import defaultProfile from "@/assets/defaultProfileImg.png";
+import jamDateLogo from "@/assets/jamdateLogo.png";
 
 export default {
   name: "HomeView",
-  components: { SearchBar },
   data() {
     return {
+      jamDateLogo,
       allProfiles: [], // full list for searching
       latestProfiles: [], // the 4 most recent
-      searchQuery: "",
       searchResults: [],
       userId: null,
     };
@@ -92,7 +87,7 @@ export default {
       return !!localStorage.getItem("token");
     },
     profilesToShow() {
-      return this.searchQuery ? this.searchResults : this.latestProfiles;
+      return this.latestProfiles;
     },
     uploadBase() {
       return apiClient.defaults.baseURL;
@@ -109,7 +104,6 @@ export default {
     this.createSparkleEffect();
   },
   methods: {
-    // ← UPDATED: ask backend for ?limit=4
     fetchProfiles() {
       const me = parseInt(this.userId, 10);
       apiClient
@@ -119,32 +113,8 @@ export default {
             (p) => p.user_id_fk !== me
           );
           this.latestProfiles = this.allProfiles; // already only 4
-          this.searchResults = this.allProfiles;
         })
         .catch(console.error);
-    },
-
-    // ← UPDATED: include name & birth_year in the search
-    handleSearch() {
-      const q = this.searchQuery.trim().toLowerCase();
-      if (!q) {
-        this.searchResults = this.allProfiles;
-        return;
-      }
-      this.searchResults = this.allProfiles.filter((p) => {
-        const desc = p.description.toLowerCase();
-        const race = p.race.toLowerCase();
-        const sex = p.sex.toLowerCase();
-        const name = p.user?.name.toLowerCase() || "";
-        const birth = String(p.birth_year);
-        return (
-          desc.includes(q) ||
-          race.includes(q) ||
-          sex === q ||
-          name.includes(q) ||
-          birth.includes(q)
-        );
-      });
     },
 
     createSparkleEffect() {
@@ -167,9 +137,11 @@ export default {
   },
 };
 </script>
-```
 
 <style scoped>
+/* Import Poppins font */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap");
+
 /* Define color variables */
 :root {
   --teal: #04acb0;
@@ -178,58 +150,86 @@ export default {
   --coral: #ff7455;
 }
 
+/* Apply Poppins font to all elements */
+* {
+  font-family: "Poppins", sans-serif;
+}
+
 .home {
   overflow-x: hidden;
 }
 
-/* Hero Section Styling */
+/* Logo Styling */
+.logo {
+  max-width: 220px;
+  margin-bottom: 1.5rem;
+  filter: drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+/* Hero Section Styling - Full Screen */
 .hero {
-  background: linear-gradient(to bottom, rgb(255, 255, 255), rgb(255, 255, 255)),
-    url("/api/placeholder/1800/800") center/cover;
-  padding: 6rem 2rem;
+  background: #ffffff, url("/api/placeholder/1800/800") center/cover;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
   position: relative;
   overflow: hidden;
-  min-height: 500px;
+  padding: 2rem;
 }
 
 .hero-content {
   max-width: 800px;
   z-index: 5;
+  animation: fadeIn 1.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .hero h1 {
-  font-size: , 3.5rem;
+  font-size: 3.8rem;
   margin-bottom: 1.5rem;
   background: linear-gradient(45deg, var(--teal), var(--coral));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   font-weight: 800;
+  letter-spacing: -0.5px;
 }
 
 .hero p {
-  font-size: 1.2rem;
-  margin-bottom: 2rem;
+  font-size: 1.3rem;
+  margin-bottom: 2.5rem;
   color: #555;
-  line-height: 1.6;
+  line-height: 1.7;
+  font-weight: 300;
 }
 
 .btn-container {
   display: flex;
-  gap: 1rem;
+  gap: 1.5rem;
   justify-content: center;
 }
 
 .btn {
-  padding: 0.8rem 1.8rem;
+  padding: 1rem 2.2rem;
   border-radius: 50px;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.3s ease;
   cursor: pointer;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
 }
 
 .btn-primary {
@@ -240,7 +240,7 @@ export default {
 }
 
 .btn-primary:hover {
-  transform: translateY(-3px);
+  transform: translateY(-5px);
   box-shadow: 0 8px 20px rgba(4, 172, 176, 0.4);
 }
 
@@ -253,11 +253,20 @@ export default {
 .btn-outline:hover {
   background: linear-gradient(45deg, var(--teal), var(--coral));
   color: white;
-  transform: translateY(-3px);
+  transform: translateY(-5px);
   box-shadow: 0 8px 20px rgba(4, 172, 176, 0.4);
+  border: 2px solid transparent;
 }
 
-/* Sparkle effect */
+.logo {
+  max-width: 220px;
+  margin-bottom: 2rem;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Enhanced Sparkle effect */
 .sparkle-container {
   position: absolute;
   top: 0;
@@ -299,84 +308,87 @@ export default {
 
 /* Profiles Section */
 .profiles-section {
-  padding: 5rem 2rem;
-  background: white;
+  padding: 6rem 2rem;
+  background: #f9fafb;
   position: relative;
   z-index: 5;
 }
 
 .section-title {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 3.5rem;
   color: var(--teal);
-  font-size: 2.2rem;
+  font-size: 2.5rem;
   position: relative;
   display: inline-block;
   left: 50%;
   transform: translateX(-50%);
+  font-weight: 700;
 }
 
 .section-title::after {
   content: "";
   display: block;
-  width: 80px;
-  height: 4px;
+  width: 100px;
+  height: 5px;
   background: linear-gradient(45deg, var(--teal), var(--coral));
-  margin: 0.5rem auto 0;
-  border-radius: 2px;
+  margin: 0.7rem auto 0;
+  border-radius: 3px;
 }
 
 .profiles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2.5rem;
   max-width: 1200px;
   margin: 0 auto;
 }
 
 .profile-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+  transition: all 0.4s ease;
   position: relative;
 }
 
 .profile-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+  transform: translateY(-12px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
 }
 
 .profile-img {
   width: 100%;
-  height: 200px;
-  object-fit: contain;
+  height: 220px;
+  object-fit: cover;
   background: #f8f9fa;
   border-bottom: 1px solid #eee;
 }
 
 .profile-details {
-  padding: 1.5rem;
+  padding: 1.8rem;
 }
 
 .profile-name {
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   color: var(--teal);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.7rem;
+  font-weight: 600;
 }
 
 .profile-description {
   color: #555;
-  margin-bottom: 1.5rem;
-  line-height: 1.5;
+  margin-bottom: 1.8rem;
+  line-height: 1.6;
+  font-size: 1.05rem;
 }
 
 .profile-link {
   display: inline-block;
   background: linear-gradient(45deg, var(--teal), var(--coral));
   color: white;
-  padding: 0.6rem 1.2rem;
+  padding: 0.7rem 1.5rem;
   border-radius: 50px;
   text-decoration: none;
   font-weight: 500;
@@ -391,36 +403,54 @@ export default {
 
 .empty-state {
   text-align: center;
-  padding: 3rem;
+  padding: 4rem;
   color: #888;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  font-weight: 300;
 }
 
 /* Responsive Styles */
 @media (max-width: 768px) {
   .hero h1 {
-    font-size: 2.5rem;
+    font-size: 2.8rem;
+  }
+
+  .hero p {
+    font-size: 1.1rem;
   }
 
   .profiles-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+
+  .logo {
+    max-width: 180px;
   }
 }
 
 @media (max-width: 576px) {
   .hero h1 {
-    font-size: 2rem;
+    font-size: 2.2rem;
+  }
+
+  .hero p {
+    font-size: 1rem;
   }
 
   .btn-container {
     flex-direction: column;
     width: 100%;
+    gap: 1rem;
   }
 
   .btn {
     width: 100%;
     text-align: center;
-    margin-bottom: 0.5rem;
+    padding: 0.9rem 1rem;
+  }
+
+  .logo {
+    max-width: 150px;
   }
 }
 </style>
