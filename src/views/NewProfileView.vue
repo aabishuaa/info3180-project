@@ -216,6 +216,8 @@
 </template>
 
 <script>
+import apiClient from "@/api.js";
+
 export default {
   name: "NewProfile",
   data() {
@@ -242,12 +244,10 @@ export default {
   },
   methods: {
     submitProfile() {
-      // Convert boolean strings to actual booleans
       this.profile.political = this.profile.political === "true";
       this.profile.religious = this.profile.religious === "true";
       this.profile.family_oriented = this.profile.family_oriented === "true";
 
-      // Get the auth token from local storage
       const token = localStorage.getItem("token");
 
       if (!token) {
@@ -255,25 +255,12 @@ export default {
         return;
       }
 
-      fetch("/api/profiles", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(this.profile),
-      })
+      apiClient
+        .post("api/profiles", this.profile)
         .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error("Failed to create profile");
-        })
-        .then((data) => {
           this.message = "Profile created successfully!";
           this.messageClass = "alert-success";
 
-          // Reset form after successful submission
           this.profile = {
             description: "",
             parish: "",
@@ -290,13 +277,17 @@ export default {
             family_oriented: null,
           };
 
-          // Redirect to user profile page after short delay
           setTimeout(() => {
-            this.$router.push(`/users/${data.user_id}`);
+            const userId = localStorage.getItem("user_id");
+            if (userId) {
+              this.$router.push(`/users/${userId}`);
+            } else {
+              this.$router.push("/");
+            }
           }, 2000);
         })
         .catch((error) => {
-          this.message = error.message;
+          this.message = error.response?.data?.message || error.message;
           this.messageClass = "alert-danger";
         });
     },

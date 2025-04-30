@@ -2,10 +2,12 @@
   <div class="container">
     <h1 class="text-center mb-4">Favorites Reports</h1>
 
+    <!-- Error banner -->
     <div v-if="message" class="alert" :class="messageClass" role="alert">
       {{ message }}
     </div>
 
+    <!-- Top Favored Users -->
     <div class="mb-5">
       <h2>Top Favored Users</h2>
       <div class="mb-3">
@@ -50,15 +52,19 @@
             <div
               class="card-header d-flex justify-content-between align-items-center"
             >
-              <h5 class="mb-0">{{ profile.name }}</h5>
-              <span class="badge bg-primary"
-                >{{ profile.favorite_count }} favorites</span
-              >
+              <h5 class="mb-0">{{ profile.description }}</h5>
+              <span class="badge bg-primary">
+                {{ profile.favorite_count }} favorites
+              </span>
             </div>
             <div class="card-body">
+              <!-- prepend uploadBase, fallback to defaultProfile -->
               <img
-                v-if="profile.photo"
-                :src="profile.photo"
+                :src="
+                  profile.photo
+                    ? `${uploadBase}/api/uploads/${profile.photo}`
+                    : defaultProfile
+                "
                 class="card-img-top mb-3"
                 alt="Profile Photo"
               />
@@ -67,15 +73,16 @@
                 <strong>Age:</strong> {{ calculateAge(profile.birth_year) }}
               </p>
               <p><strong>Description:</strong> {{ profile.description }}</p>
-              <router-link :to="`/profiles/${profile.id}`" class="btn btn-info"
-                >View Details</router-link
-              >
+              <router-link :to="`/profiles/${profile.id}`" class="btn btn-info">
+                View Details
+              </router-link>
             </div>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- My Favorites -->
     <div>
       <h2>My Favorites</h2>
       <div class="mb-3">
@@ -122,12 +129,15 @@
         >
           <div class="card h-100">
             <div class="card-header">
-              <h5 class="mb-0">{{ profile.name }}</h5>
+              <h5 class="mb-0">{{ profile.description }}</h5>
             </div>
             <div class="card-body">
               <img
-                v-if="profile.photo"
-                :src="profile.photo"
+                :src="
+                  profile.photo
+                    ? `${uploadBase}/api/uploads/${profile.photo}`
+                    : defaultProfile
+                "
                 class="card-img-top mb-3"
                 alt="Profile Photo"
               />
@@ -136,9 +146,9 @@
                 <strong>Age:</strong> {{ calculateAge(profile.birth_year) }}
               </p>
               <p><strong>Description:</strong> {{ profile.description }}</p>
-              <router-link :to="`/profiles/${profile.id}`" class="btn btn-info"
-                >View Details</router-link
-              >
+              <router-link :to="`/profiles/${profile.id}`" class="btn btn-info">
+                View Details
+              </router-link>
             </div>
           </div>
         </div>
@@ -148,9 +158,11 @@
 </template>
 
 <script>
+import apiClient from "@/api.js";
+import defaultProfile from "@/assets/default-profile.png";
+
 export default {
   name: "FavoritesReport",
-
   data() {
     return {
       topFavorites: [],
@@ -162,80 +174,56 @@ export default {
       currentYear: new Date().getFullYear(),
     };
   },
+  computed: {
+    uploadBase() {
+      return apiClient.defaults.baseURL;
+    },
+  },
   created() {
     this.fetchTopFavorites();
     this.fetchMyFavorites();
   },
   methods: {
     fetchTopFavorites() {
-      const token = localStorage.getItem("token");
+      this.message = "";
+      this.messageClass = "";
 
-      if (!token) {
-        this.$router.push("/login");
-        return;
-      }
-
-      fetch("/api/users/favourites/20", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      apiClient
+        .get("/api/users/favourites/20")
         .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error("Failed to fetch top favorites");
-        })
-        .then((data) => {
-          this.topFavorites = data;
+          this.topFavorites = response.data.top_favourites || [];
           this.sortTopFavorites(this.sortType);
         })
         .catch((error) => {
-          this.message = error.message;
+          console.error(error.response?.data || error.message);
+          this.message =
+            error.response?.data?.message || "Failed to fetch top favorites.";
           this.messageClass = "alert-danger";
         });
     },
 
     fetchMyFavorites() {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
+      const userId = parseInt(localStorage.getItem("user_id"), 10);
+      if (!userId) {
         this.$router.push("/login");
         return;
       }
 
-      // We need to get the current user's ID first
-      fetch("/api/auth/user", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      this.message = "";
+      this.messageClass = "";
+
+      apiClient
+        .get(`/api/users/${userId}/favourites`)
         .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error("Failed to get current user");
-        })
-        .then((userData) => {
-          // Now fetch this user's favorites
-          return fetch(`/api/users/${userData.id}/favourites`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-        })
-        .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error("Failed to fetch your favorites");
-        })
-        .then((data) => {
-          this.myFavorites = data;
+          this.myFavorites = (response.data.favourites || []).filter(
+            (p) => p.id !== userId
+          );
           this.sortMyFavorites(this.myFavSortType);
         })
         .catch((error) => {
-          this.message = error.message;
+          console.error(error.response?.data || error.message);
+          this.message =
+            error.response?.data?.message || "Failed to fetch your favorites.";
           this.messageClass = "alert-danger";
         });
     },
@@ -246,9 +234,10 @@ export default {
 
     sortTopFavorites(type) {
       this.sortType = type;
-
       if (type === "name") {
-        this.topFavorites.sort((a, b) => a.name.localeCompare(b.name));
+        this.topFavorites.sort((a, b) =>
+          a.description.localeCompare(b.description)
+        );
       } else if (type === "parish") {
         this.topFavorites.sort((a, b) => a.parish.localeCompare(b.parish));
       } else if (type === "age") {
@@ -261,9 +250,10 @@ export default {
 
     sortMyFavorites(type) {
       this.myFavSortType = type;
-
       if (type === "name") {
-        this.myFavorites.sort((a, b) => a.name.localeCompare(b.name));
+        this.myFavorites.sort((a, b) =>
+          a.description.localeCompare(b.description)
+        );
       } else if (type === "parish") {
         this.myFavorites.sort((a, b) => a.parish.localeCompare(b.parish));
       } else if (type === "age") {

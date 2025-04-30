@@ -35,7 +35,14 @@ const routes = [
     name: 'favourites',
     component: FavouritesView,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/my-profile',
+    name: 'my-profile',
+    component: UserProfileView,
+    meta: { requiresAuth: true }
   }
+  
 ];
 
 const router = createRouter({

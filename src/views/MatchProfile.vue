@@ -127,6 +127,8 @@
 </template>
 
 <script>
+import apiClient from "@/api.js";
+
 export default {
   name: "MatchProfiles",
   data() {
@@ -147,146 +149,73 @@ export default {
   methods: {
     fetchMatches() {
       const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("user_id");
 
-      if (!token) {
+      if (!token || !userId) {
         this.$router.push("/login");
         return;
       }
 
-      // First get the profile details to use for comparison
-      fetch(`/api/profiles/${this.profileId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      apiClient
+        .get(`api/profiles/${this.profileId}`)
         .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error("Failed to fetch your profile");
-        })
-        .then((profileData) => {
-          this.myProfile = profileData;
+          this.myProfile = response.data.profile;
           this.profileName =
-            profileData.description || `Profile #${this.profileId}`;
+            this.myProfile.description || `Profile #${this.profileId}`;
 
-          // Now fetch the matches
-          return fetch(`/api/profiles/matches/${this.profileId}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
+          return apiClient.get(`/profiles/matches/${this.profileId}`);
         })
         .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error("Failed to fetch matches");
-        })
-        .then((matchData) => {
-          this.matches = matchData;
-
-          // Now check which profiles are already favorites
-          return this.checkFavorites();
+          this.matches = response.data.matches || response.data;
+          return this.checkFavorites(userId);
         })
         .then(() => {
           this.loading = false;
         })
         .catch((error) => {
-          this.message = error.message;
+          this.message = error.response?.data?.message || error.message;
           this.messageClass = "alert-danger";
           this.loading = false;
         });
     },
 
-    checkFavorites() {
-      const token = localStorage.getItem("token");
-
-      // Get the user's current favorites to mark matched profiles
-      return fetch("/api/auth/user", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error("Failed to get current user");
-        })
-        .then((userData) => {
-          return fetch(`/api/users/${userData.id}/favourites`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-        })
-        .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error("Failed to fetch favorites");
-        })
-        .then((favorites) => {
-          // Mark profiles that are already favorites
-          const favoriteIds = favorites.map((fav) => fav.id);
-          this.matches.forEach((match) => {
-            match.isFavorite = favoriteIds.includes(match.id);
-          });
+    checkFavorites(userId) {
+      return apiClient.get(`/users/${userId}/favourites`).then((response) => {
+        const favoriteIds = response.data.favourites.map(
+          (fav) => fav.profile_id || fav.fav_user_id_fk
+        );
+        this.matches.forEach((match) => {
+          match.isFavorite = favoriteIds.includes(match.id);
         });
+      });
     },
 
     toggleFavorite(profile) {
       const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("user_id");
 
-      if (!token) {
+      if (!token || !userId) {
         this.$router.push("/login");
         return;
       }
 
-      // First get current user id
-      fetch("/api/auth/user", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error("Failed to get current user");
+      apiClient
+        .post(`/profiles/${profile.id}/favourite`, {
+          fav_user_id_fk: profile.id,
         })
-        .then((userData) => {
-          // Add this profile to favorites
-          return fetch(`/api/profiles/${profile.id}/favourite`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ user_id: userData.id }),
-          });
-        })
-        .then((response) => {
-          if (response.ok) {
-            // Toggle the favorite status locally
-            profile.isFavorite = !profile.isFavorite;
+        .then(() => {
+          profile.isFavorite = !profile.isFavorite;
+          this.message = profile.isFavorite
+            ? `Added ${profile.description} to your favorites!`
+            : `Removed ${profile.description} from your favorites.`;
+          this.messageClass = "alert-success";
 
-            this.message = profile.isFavorite
-              ? `Added ${profile.name} to your favorites!`
-              : `Removed ${profile.name} from your favorites.`;
-            this.messageClass = "alert-success";
-
-            // Clear message after 3 seconds
-            setTimeout(() => {
-              this.message = "";
-            }, 3000);
-          } else {
-            throw new Error("Failed to update favorite status");
-          }
+          setTimeout(() => {
+            this.message = "";
+          }, 3000);
         })
         .catch((error) => {
-          this.message = error.message;
+          this.message = error.response?.data?.message || error.message;
           this.messageClass = "alert-danger";
         });
     },

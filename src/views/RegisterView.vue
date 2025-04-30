@@ -150,7 +150,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import apiClient from "@/api.js";
 
 export default {
   name: "Register",
@@ -187,25 +187,21 @@ export default {
         email: null,
       };
 
-      // Username validation
       if (this.user.username.length < 3) {
         this.errors.username = "Username must be at least 3 characters";
         isValid = false;
       }
 
-      // Password validation
       if (this.user.password.length < 8) {
         this.errors.password = "Password must be at least 8 characters";
         isValid = false;
       }
 
-      // Confirm password validation
       if (this.user.password !== this.confirmPassword) {
         this.errors.confirmPassword = "Passwords do not match";
         isValid = false;
       }
 
-      // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(this.user.email)) {
         this.errors.email = "Please enter a valid email address";
@@ -223,9 +219,9 @@ export default {
       this.error = null;
       this.successMessage = null;
 
-      axios
-        .post("/api/register", this.user)
-        .then((response) => {
+      apiClient
+        .post("api/register", this.user)
+        .then(() => {
           this.successMessage =
             "Registration successful! Redirecting you to login...";
           setTimeout(() => {
@@ -233,11 +229,7 @@ export default {
           }, 2000);
         })
         .catch((error) => {
-          if (error.response && error.response.data) {
-            this.error = error.response.data.message || "Registration failed";
-          } else {
-            this.error = "An error occurred. Please try again.";
-          }
+          this.error = error.response?.data?.message || "Registration failed.";
         })
         .finally(() => {
           this.isSubmitting = false;

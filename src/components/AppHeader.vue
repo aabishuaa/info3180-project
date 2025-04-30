@@ -54,12 +54,12 @@
           <li class="nav-item">
             <router-link class="nav-link" to="/">Home</router-link>
           </li>
-          <li v-if="isAuthenticated" class="nav-item">
-            <router-link class="nav-link" :to="`/users/${userId}`"
+          <li v-if="auth.isAuthenticated" class="nav-item">
+            <router-link class="nav-link" :to="`/users/${auth.userId}`"
               >My Profile</router-link
             >
           </li>
-          <li v-if="isAuthenticated" class="nav-item">
+          <li v-if="auth.isAuthenticated" class="nav-item">
             <router-link class="nav-link" to="/profiles/favourites"
               >Favourites</router-link
             >
@@ -67,13 +67,13 @@
         </ul>
 
         <ul class="navbar-nav nav-links">
-          <li v-if="!isAuthenticated" class="nav-item">
+          <li v-if="!auth.isAuthenticated" class="nav-item">
             <router-link class="nav-link" to="/login">Login</router-link>
           </li>
-          <li v-if="!isAuthenticated" class="nav-item">
+          <li v-if="!auth.isAuthenticated" class="nav-item">
             <router-link class="nav-link" to="/register">Register</router-link>
           </li>
-          <li v-if="isAuthenticated" class="nav-item">
+          <li v-if="auth.isAuthenticated" class="nav-item">
             <a class="nav-link" style="cursor: pointer" @click="logout"
               >Logout</a
             >
@@ -84,35 +84,21 @@
   </header>
 </template>
 
-<script>
-import { ref, onMounted } from "vue";
+<script setup>
+import { auth } from "@/auth.js";
 import { useRouter } from "vue-router";
 
-export default {
-  name: "AppHeader",
-  setup() {
-    const router = useRouter();
-    const isAuthenticated = ref(false);
-    const userId = ref(null);
+const router = useRouter();
 
-    const checkAuth = () => {
-      isAuthenticated.value = !!localStorage.getItem("token");
-      const userInfo = JSON.parse(localStorage.getItem("user") || "{}");
-      userId.value = userInfo.id || null;
-    };
+function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user_id");
 
-    const logout = () => {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      isAuthenticated.value = false;
-      router.push("/login");
-    };
+  auth.isAuthenticated = false;
+  auth.userId = null;
 
-    onMounted(checkAuth);
-
-    return { isAuthenticated, userId, logout };
-  },
-};
+  router.push("/login");
+}
 </script>
 
 <style scoped>
@@ -165,6 +151,6 @@ export default {
 }
 
 .navbar-toggler-icon {
-  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba%28255, 255, 255, 0.7%29' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(255,255,255,0.7)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
 }
 </style>

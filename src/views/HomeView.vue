@@ -1,16 +1,15 @@
 <template>
   <div class="home">
-    <!-- Search Section First (even if user not logged in) -->
-    <section class="search-section">
+    <!-- Search Section -->
+    <section class="search-section py-4">
       <SearchBar v-model="searchQuery" @submit="handleSearch" />
     </section>
 
-    <!-- Hero Section after Search -->
+    <!-- Hero Section with Sparkles -->
     <section class="hero">
       <div class="sparkle-container">
         <div v-for="n in 50" :key="n" class="sparkle"></div>
       </div>
-
       <div class="hero-content">
         <h1>Welcome to Jam-Date</h1>
         <p>
@@ -25,9 +24,9 @@
             <router-link to="/login" class="btn btn-outline">Login</router-link>
           </template>
           <template v-else>
-            <router-link :to="`/users/${userId}`" class="btn btn-primary"
-              >View Your Profile</router-link
-            >
+            <router-link :to="`/users/${userId}`" class="btn btn-primary">
+              View Your Profile
+            </router-link>
           </template>
         </div>
       </div>
@@ -35,19 +34,23 @@
 
     <!-- Profiles Section -->
     <section class="profiles-section" v-if="isAuthenticated">
-      <h2 class="section-title" v-if="profilesToShow.length > 0">
-        {{ searchQuery.length > 0 ? "Search Results" : "Latest Profiles" }}
+      <h2 class="section-title" v-if="profilesToShow.length">
+        {{ searchQuery ? "Search Results" : "Latest Profiles" }}
       </h2>
 
-      <div class="profiles-grid" v-if="profilesToShow.length > 0">
+      <div class="profiles-grid" v-if="profilesToShow.length">
         <div
           class="profile-card"
           v-for="profile in profilesToShow"
           :key="profile.id"
         >
           <img
-            :src="profile.photo || '/default-profile.png'"
-            :alt="profile.name"
+            :src="
+              profile.photo
+                ? `${uploadBase}/api/uploads/${profile.photo}`
+                : defaultProfile
+            "
+            :alt="profile.user?.name || 'Profile'"
             class="profile-img"
           />
           <div class="profile-details">
@@ -68,16 +71,17 @@
 </template>
 
 <script>
-import axios from "axios";
+import apiClient from "@/api.js";
 import SearchBar from "@/components/SearchBar.vue";
+import defaultProfile from "@/assets/default-profile.png";
 
 export default {
   name: "HomeView",
-  needsContainer: true,
   components: { SearchBar },
   data() {
     return {
-      latestProfiles: [],
+      allProfiles: [], // ← full list for searching
+      latestProfiles: [], // ← first 4
       searchQuery: "",
       searchResults: [],
       userId: null,
@@ -88,45 +92,52 @@ export default {
       return !!localStorage.getItem("token");
     },
     profilesToShow() {
-      if (this.searchQuery.length > 0) {
-        return this.searchResults;
-      }
-      return this.latestProfiles;
+      return this.searchQuery ? this.searchResults : this.latestProfiles;
+    },
+    uploadBase() {
+      return apiClient.defaults.baseURL;
+    },
+    defaultProfile() {
+      return defaultProfile;
     },
   },
   mounted() {
-    this.createSparkleEffect();
-    const userInfo = JSON.parse(localStorage.getItem("user") || "{}");
-    this.userId = userInfo.id || null;
-
+    this.userId = localStorage.getItem("user_id");
     if (this.isAuthenticated) {
       this.fetchProfiles();
     }
+    this.createSparkleEffect();
   },
   methods: {
     fetchProfiles() {
-      const token = localStorage.getItem("token");
-      axios
-        .get("/api/profiles", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const me = parseInt(this.userId, 10);
+      apiClient
+        .get("/api/profiles")
+        .then((res) => {
+          // build the full list excluding current user
+          this.allProfiles = (res.data.profiles || res.data).filter(
+            (p) => p.user_id_fk !== me
+          );
+
+          // show the first 4 by default
+          this.latestProfiles = this.allProfiles.slice(0, 4);
+          this.searchResults = this.allProfiles;
         })
-        .then((response) => {
-          this.latestProfiles = response.data.slice(0, 4);
-          this.searchResults = response.data; // Keep full list for searching
-        })
-        .catch((error) => {
-          console.error("Error fetching profiles:", error);
-        });
+        .catch(console.error);
     },
-    handleSearch(query) {
-      this.searchResults = this.latestProfiles.filter((profile) => {
-        const name = profile.user?.name?.toLowerCase() || "";
-        const race = profile.race?.toLowerCase() || "";
-        const sex = profile.sex?.toLowerCase() || "";
-        const q = query.toLowerCase();
-        return name.includes(q) || race.includes(q) || sex.includes(q);
+    handleSearch() {
+      const q = this.searchQuery.trim().toLowerCase();
+      if (!q) {
+        this.searchResults = this.allProfiles;
+        return;
+      }
+      this.searchResults = this.allProfiles.filter((p) => {
+        const desc = p.description.toLowerCase();
+        const race = p.race.toLowerCase();
+        const sex = p.sex.toLowerCase();
+        return (
+          desc.includes(q) || race.includes(q) || sex === q // ← exact match on sex
+        );
       });
     },
     createSparkleEffect() {
@@ -152,6 +163,7 @@ export default {
   },
 };
 </script>
+```
 
 <style scoped>
 /* Define color variables */
@@ -335,7 +347,9 @@ export default {
 .profile-img {
   width: 100%;
   height: 200px;
-  object-fit: cover;
+  object-fit: contain;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
 }
 
 .profile-details {

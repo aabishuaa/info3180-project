@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import apiClient from "@/api.js";
 
 export default {
   name: "Logout",
@@ -29,27 +29,20 @@ export default {
       const token = localStorage.getItem("token");
 
       if (token) {
-        axios
-          .post(
-            "/api/auth/logout",
-            {},
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          )
+        apiClient
+          .post("api/auth/logout")
           .catch((error) => {
-            console.error("Error during logout:", error);
+            console.error(
+              "Error during logout:",
+              error.response?.data || error.message
+            );
           })
           .finally(() => {
-            // Clear local storage regardless of API response
             localStorage.removeItem("token");
-            localStorage.removeItem("user");
+            localStorage.removeItem("user_id");
             this.isLoggingOut = false;
           });
       } else {
-        // No token found, already logged out
         this.isLoggingOut = false;
       }
     },

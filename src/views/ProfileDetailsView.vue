@@ -1,4 +1,3 @@
-<!-- src/components/ProfileDetails.vue -->
 <template>
   <div class="profile-details">
     <div v-if="loading" class="text-center py-5">
@@ -15,7 +14,7 @@
       <div class="row g-0">
         <div class="col-md-4">
           <img
-            :src="profile.user.photo"
+            :src="profilePhotoUrl"
             class="img-fluid rounded-start"
             alt="Profile Photo"
           />
@@ -63,7 +62,7 @@
                 <p><strong>Favorite Color:</strong> {{ profile.fav_colour }}</p>
                 <p>
                   <strong>Favorite School Subject:</strong>
-                  {{ profile.fav_school_sibject }}
+                  {{ profile.fav_school_subject }}
                 </p>
                 <p>
                   <strong>Political:</strong>
@@ -86,12 +85,12 @@
             </div>
 
             <div class="mt-4">
-              <a :href="`mailto:${profile.user.email}`" class="btn btn-primary"
-                >Email Profile</a
-              >
-              <router-link to="/" class="btn btn-secondary ms-2"
-                >Back to Profiles</router-link
-              >
+              <a :href="`mailto:${profile.user.email}`" class="btn btn-primary">
+                Email Profile
+              </a>
+              <router-link to="/" class="btn btn-secondary ms-2">
+                Back to Profiles
+              </router-link>
             </div>
           </div>
         </div>
@@ -101,7 +100,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import apiClient from "@/api.js";
 
 export default {
   name: "ProfileDetails",
@@ -113,6 +112,18 @@ export default {
       isFavorite: false,
     };
   },
+  computed: {
+    // build the image URL from baseURL + uploads path
+    uploadBase() {
+      return apiClient.defaults.baseURL;
+    },
+    profilePhotoUrl() {
+      const fname = this.profile.photo || this.profile.user.photo;
+      return fname
+        ? `${this.uploadBase}/api/uploads/${fname}`
+        : "/default-profile.png";
+    },
+  },
   created() {
     this.fetchProfileDetails();
     this.checkIfFavorite();
@@ -120,82 +131,88 @@ export default {
   methods: {
     fetchProfileDetails() {
       const token = localStorage.getItem("token");
-      const profileId = this.$route.params.profile_id;
+      const profileId = this.$route.params.id;
 
-      axios
-        .get(`/api/profiles/${profileId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
+      if (!profileId) {
+        this.error = "Invalid profile ID.";
+        this.loading = false;
+        return;
+      }
+      if (!token) {
+        this.$router.push("/login");
+        return;
+      }
+
+      apiClient
+        .get(`/api/profiles/${profileId}`)
         .then((response) => {
-          this.profile = response.data;
+          // response.data.profile matches your JSON shape
+          this.profile = response.data.profile;
           this.loading = false;
         })
-        .catch((error) => {
-          this.error = "Failed to load profile details";
+        .catch((err) => {
+          this.error =
+            err.response?.data?.message || "Failed to load profile details.";
           this.loading = false;
-          console.error("Error fetching profile details:", error);
         });
     },
+
     checkIfFavorite() {
       const token = localStorage.getItem("token");
-      const userInfo = JSON.parse(localStorage.getItem("user") || "{}");
-      const userId = userInfo.id;
+      const userId = localStorage.getItem("user_id");
 
-      if (!userId) return;
+      if (!token || !userId) {
+        this.$router.push("/login");
+        return;
+      }
 
-      axios
-        .get(`/api/users/${userId}/favourites`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
+      apiClient
+        .get(`/api/users/${userId}/favourites`)
         .then((response) => {
-          const favorites = response.data;
-          this.isFavorite = favorites.some(
-            (fav) => fav.id === parseInt(this.$route.params.profile_id)
+          const favs = response.data.favourites || [];
+          this.isFavorite = favs.some(
+            (fav) => fav.id === parseInt(this.$route.params.id, 10)
           );
         })
-        .catch((error) => {
-          console.error("Error checking favorites:", error);
+        .catch((err) => {
+          console.error("favorite check failed", err);
         });
     },
+
     toggleFavorite() {
       const token = localStorage.getItem("token");
-      const profileId = this.$route.params.profile_id;
+      const profileId = this.$route.params.id;
 
-      axios
-        .post(
-          `/api/profiles/${profileId}/favourite`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        )
+      if (!token) {
+        this.$router.push("/login");
+        return;
+      }
+
+      apiClient
+        .post(`/api/profiles/${profileId}/favourite`, {
+          fav_user_id_fk: parseInt(profileId, 10),
+        })
         .then(() => {
           this.isFavorite = !this.isFavorite;
         })
-        .catch((error) => {
-          console.error("Error toggling favorite:", error);
+        .catch((err) => {
+          console.error("toggle favorite failed", err);
         });
     },
-    calculateAge(birthYear) {
-      const currentYear = new Date().getFullYear();
-      return currentYear - birthYear;
+
+    calculateAge(year) {
+      return new Date().getFullYear() - year;
     },
-    formatHeight(height) {
-      // Convert decimal height to feet and inches
-      const feet = Math.floor(height);
-      const inches = Math.round((height - feet) * 12);
-      return `${feet}' ${inches}"`;
+
+    formatHeight(h) {
+      const ft = Math.floor(h),
+        inch = Math.round((h - ft) * 12);
+      return `${ft}' ${inch}"`;
     },
   },
 };
 </script>
 
 <style scoped>
-/* Add custom styles here if needed */
+/* … */
 </style>

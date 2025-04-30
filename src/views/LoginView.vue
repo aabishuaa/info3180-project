@@ -65,7 +65,8 @@
 </template>
 
 <script>
-import axios from "axios";
+import apiClient from "@/api.js";
+import { auth } from "@/auth.js";
 
 export default {
   name: "Login",
@@ -85,27 +86,25 @@ export default {
       this.isSubmitting = true;
       this.error = null;
 
-      axios
-        .post("/api/auth/login", this.credentials)
+      apiClient
+        .post("api/auth/login", this.credentials)
         .then((response) => {
-          // Save token and user info to local storage
+          // Save token and user_id to local storage
           localStorage.setItem("token", response.data.token);
-          localStorage.setItem("user", JSON.stringify(response.data.user));
+          localStorage.setItem("user_id", response.data.user_id);
 
-          // Redirect to the user's profile page
-          const userInfo = JSON.parse(localStorage.getItem("user"));
-          if (userInfo && userInfo.id) {
-            this.$router.push(`/users/${userInfo.id}`);
+          auth.isAuthenticated = true;
+          auth.userId = response.data.user_id;
+
+          if (auth.isAuthenticated) {
+            this.$router.push(`/users/${auth.userId}`);
           } else {
             this.$router.push("/");
           }
         })
         .catch((error) => {
-          if (error.response && error.response.data) {
-            this.error = error.response.data.message || "Login failed";
-          } else {
-            this.error = "An error occurred. Please try again.";
-          }
+          console.error(error.response?.data || error.message);
+          this.error = error.response?.data?.message || "Login failed.";
         })
         .finally(() => {
           this.isSubmitting = false;
