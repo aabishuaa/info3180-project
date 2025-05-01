@@ -14,9 +14,11 @@ app.config.from_object(Config)
 csrf = CSRFProtect(app)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-CORS(app,
-     resources=[ os.environ.get('FRONTEND_URL') ],
-     supports_credentials=True)
+frontend = os.environ.get('FRONTEND_URL')
+if frontend:
+    CORS(app, origins=[frontend], supports_credentials=True)
+else:
+    CORS(app, origins="*", supports_credentials=True)
 
 from app.views import frontend
 app.register_blueprint(frontend)
