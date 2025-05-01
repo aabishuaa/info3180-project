@@ -139,53 +139,25 @@ export default {
         .catch(console.error);
     },
     handleSearch(searchParams) {
-      const me = parseInt(this.userId, 10);
+      const queryString = new URLSearchParams(searchParams).toString();
 
-      this.filteredProfiles = this.allProfiles.filter((profile) => {
-        // Filter by name (case insensitive partial match)
-        if (
-          searchParams.name &&
-          !profile.user?.name
-            ?.toLowerCase()
-            .includes(searchParams.name.toLowerCase())
-        ) {
-          return false;
-        }
+      // ✅ Debug the full API URL
+      console.log("Search URL:", `/api/search?${queryString}`);
 
-        // Filter by birth year
-        if (
-          searchParams.birthYear &&
-          profile.birth_year !== parseInt(searchParams.birthYear)
-        ) {
-          return false;
-        }
+      apiClient
+        .get(`/api/search?${queryString}`)
+        .then((res) => {
+          this.filteredProfiles = res.data.results || [];
 
-        // Filter by sex
-        if (
-          searchParams.sex &&
-          profile.sex?.toLowerCase() !== searchParams.sex.toLowerCase()
-        ) {
-          return false;
-        }
-
-        // Filter by race
-        if (
-          searchParams.race &&
-          profile.race?.toLowerCase() !== searchParams.race.toLowerCase()
-        ) {
-          return false;
-        }
-
-        // Never show current user
-        if (profile.user_id_fk === me) {
-          return false;
-        }
-
-        return true;
-      });
-
-      this.isSearching = true;
+          this.isSearching = true;
+        })
+        .catch((err) => {
+          console.error("Search failed:", err);
+          this.filteredProfiles = [];
+          this.isSearching = false;
+        });
     },
+
     resetSearch() {
       this.filteredProfiles = [];
       this.isSearching = false;

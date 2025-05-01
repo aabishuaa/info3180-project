@@ -14,8 +14,6 @@ from flask_wtf.csrf import validate_csrf
 from wtforms.validators import ValidationError
 
 
-
-# Secret key for encoding JWT
 SECRET_KEY = app.config['SECRET_KEY']
 
 ###
@@ -128,7 +126,7 @@ def serve_profile_photo(filename):
 
 
 @app.route('/api/users/<int:user_id>/photo', methods=['POST'])
-@csrf.exempt  # Only if you need to bypass CSRF temporarily
+@csrf.exempt  
 @token_required
 def upload_user_photo(current_user, user_id):
     if current_user.id != user_id:
@@ -141,7 +139,6 @@ def upload_user_photo(current_user, user_id):
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         photo.save(filepath)
 
-        # Update user model
         user = Users.query.get_or_404(user_id)
         user.photo = filename
         db.session.commit()
@@ -159,17 +156,13 @@ from sqlalchemy import desc
 @app.route('/api/profiles', methods=['GET'])
 @token_required
 def get_profiles(current_user):
-    # read limit & offset
     limit  = request.args.get('limit', 4, type=int)
     offset = request.args.get('offset', 0, type=int)
 
-    # base query: exclude your own profiles
     query = Profile.query.filter(Profile.user_id_fk != current_user.id)
 
-    # order by descending id (newest first).  If you have Profile.date_created you can use that.
     query = query.order_by(desc(Profile.id))
 
-    # apply offset/limit
     profiles = query.offset(offset).limit(limit).all()
 
     profiles_data = [{
@@ -188,7 +181,6 @@ def get_profiles(current_user):
         'religious':    p.religious,
         'family_oriented': p.family_oriented,
         'photo':        p.user.photo if p.user else None,
-        # include user info if you like
         'user': {
           'name': p.user.name if p.user else None,
           'date_joined': p.user.date_joined.isoformat() if p.user else None
@@ -206,12 +198,10 @@ def get_profiles(current_user):
 def add_profile(current_user):
     data = request.get_json()
 
-    # Limit: No more than 3 profiles per user
     profile_count = Profile.query.filter_by(user_id_fk=current_user.id).count()
     if profile_count >= 3:
         return jsonify(message="You cannot have more than 3 profiles"), 403
 
-    # Ensure all required fields are filled
     required_fields = ['description', 'parish', 'biography', 'sex', 'race', 'birth_year', 'height', 'fav_cuisine', 'fav_colour', 'fav_school_subject']
     for field in required_fields:
         if not data.get(field):
@@ -236,27 +226,26 @@ def add_profile(current_user):
     db.session.add(profile)
     db.session.commit()
 
-    # ✅ Return full profile object with ID
     return jsonify({
-        "message": "Profile created successfully",
-        "profile": {
-            "id": profile.id,
-            "user_id_fk": profile.user_id_fk,
-            "description": profile.description,
-            "parish": profile.parish,
-            "biography": profile.biography,
-            "sex": profile.sex,
-            "race": profile.race,
-            "birth_year": profile.birth_year,
-            "height": profile.height,
-            "fav_cuisine": profile.fav_cuisine,
-            "fav_colour": profile.fav_colour,
-            "fav_school_subject": profile.fav_school_subject,
-            "political": profile.political,
-            "religious": profile.religious,
-            "family_oriented": profile.family_oriented
-        }
-    }), 201
+    "message": "Profile created successfully",
+    "profile": {
+        "id": profile.id,
+        "description": profile.description,
+        "parish": profile.parish,
+        "biography": profile.biography,
+        "sex": profile.sex,
+        "race": profile.race,
+        "birth_year": profile.birth_year,
+        "height": profile.height,
+        "fav_cuisine": profile.fav_cuisine,
+        "fav_colour": profile.fav_colour,
+        "fav_school_subject": profile.fav_school_subject,
+        "political": profile.political,
+        "religious": profile.religious,
+        "family_oriented": profile.family_oriented,
+        "user_id_fk": profile.user_id_fk
+    }
+}), 201
 
 
 @app.route('/api/profiles/<int:profile_id>', methods=['GET'])
@@ -307,15 +296,11 @@ def favourite_profile(current_user, user_id):
 
     return jsonify(message="Profile added to favourites"), 201
 
-# views.py
-
 @app.route('/api/profiles/matches/<int:profile_id>', methods=['GET'])
 @token_required
 def get_matches(current_user, profile_id):
-    # Load the reference profile
     me = Profile.query.get_or_404(profile_id)
-
-    # Fetch all candidate profiles (exclude own user + same profile)
+    
     candidates = Profile.query.filter(
         Profile.id != me.id,
         Profile.user_id_fk != current_user.id
@@ -323,41 +308,37 @@ def get_matches(current_user, profile_id):
 
     results = []
     for p in candidates:
-        # 1. Age difference within 5 years
+    
         age_ok = abs(me.birth_year - p.birth_year) <= 5
 
-        # 2. Same user already excluded above
-
-        # 3. Height difference between 3–10 inches (convert feet to inches)
-        height_diff_inches = abs(me.height - p.height) * 12
+    
+        height_diff_inches = abs(me.height - p.height) 
         height_ok = 3 <= height_diff_inches <= 10
 
-        # 4. Match on at least 3 of the 6 fields
         field_matches = sum([
-            me.fav_cuisine == p.fav_cuisine,
-            me.fav_colour == p.fav_colour,
-            me.fav_school_subject == p.fav_school_subject,
-            me.political == p.political,
-            me.religious == p.religious,
-            me.family_oriented == p.family_oriented
+            me.fav_cuisine       == p.fav_cuisine,
+            me.fav_colour        == p.fav_colour,
+            me.fav_school_subject== p.fav_school_subject,
+            me.political         == p.political,
+            me.religious         == p.religious,
+            me.family_oriented   == p.family_oriented,
         ])
         fields_ok = field_matches >= 3
 
-        # Final filter
         if age_ok and height_ok and fields_ok:
             results.append({
-                'id': p.id,
-                'description': p.description,
-                'parish': p.parish,
-                'sex': p.sex,
-                'race': p.race,
-                'birth_year': p.birth_year,
-                'height': p.height,
-                'matches': field_matches
+                'id':           p.id,
+                'description':  p.description,
+                'parish':       p.parish,
+                'sex':          p.sex,
+                'race':         p.race,
+                'birth_year':   p.birth_year,
+                'height':       p.height,
+                'photo': p.user.photo if p.user else None,
+                'matches':      field_matches
             })
 
     return jsonify(matches=results)
-
 
 
 @app.route('/api/search', methods=['GET'])
@@ -368,7 +349,9 @@ def search_profiles(current_user):
     sex = request.args.get('sex')
     race = request.args.get('race')
 
-    query = Profile.query.filter(Profile.user_id_fk != current_user.id)
+
+    query = Profile.query.join(Users).filter(Profile.user_id_fk != current_user.id)
+
 
     if name:
         query = query.filter(Profile.description.ilike(f'%{name}%'))
@@ -382,13 +365,19 @@ def search_profiles(current_user):
     profiles = query.all()
 
     results = [{
-        'id': p.id,
-        'description': p.description,
-        'parish': p.parish,
-        'sex': p.sex,
-        'race': p.race,
-        'birth_year': p.birth_year
-    } for p in profiles]
+    'id': p.id,
+    'description': p.description,
+    'parish': p.parish,
+    'sex': p.sex,
+    'race': p.race,
+    'birth_year': p.birth_year,
+    'photo': p.user.photo if p.user else None,
+    'user': {
+        'name': p.user.name if p.user else "User",
+        'date_joined': p.user.date_joined.isoformat() if p.user else None
+    }
+} for p in profiles]
+
 
     return jsonify(results=results)
 
@@ -408,7 +397,6 @@ def get_user_details(current_user, user_id):
         'name':         user.name,
         'email':        user.email,
         'photo':        user.photo,
-        # serialize to ISO so the front-end sees the real creation date:
         'date_joined':  user.date_joined.isoformat(),
         'profiles':     profiles_data
     })
@@ -417,7 +405,6 @@ def get_user_details(current_user, user_id):
 @app.route('/api/users/<int:user_id>/favourites', methods=['GET'])
 @token_required
 def get_user_favourites(current_user, user_id):
-    # fetch all Favourite rows for this user
     favourites = Favourite.query.filter_by(user_id_fk=user_id).all()
 
     favs = []
@@ -426,26 +413,19 @@ def get_user_favourites(current_user, user_id):
         if not p:
             continue
 
-        # skip your own profile
         if p.user_id_fk == current_user.id:
             continue
 
         favs.append({
-    'id': p.id,
-    'description': p.description,
-    'parish': p.parish,
-    'sex': p.sex,
-    'race': p.race,
-    'birth_year': p.birth_year,
-    'height': p.height,
-    'photo': p.user.photo if p.user else None,
-    'user': {
-        'name': p.user.name if p.user else "User",
-        'photo': p.user.photo if p.user else None,
-        'date_joined': p.user.date_joined.isoformat() if p.user else None
-    }
-})
-
+            'id': p.id,
+            'description': p.description,
+            'parish': p.parish,
+            'sex': p.sex,
+            'race': p.race,
+            'birth_year': p.birth_year,
+            'height': p.height,
+            'photo': p.user.photo if p.user else None,
+        })
 
     return jsonify(favourites=favs)
 
@@ -454,7 +434,6 @@ def get_user_favourites(current_user, user_id):
 @app.route('/api/users/favourites/<int:N>', methods=['GET'])
 @token_required
 def get_top_favourites(current_user, N):
-    # join Profile ← Favourite, exclude your own profiles
     query = (
         db.session
           .query(Profile, db.func.count(Favourite.id).label('count'))
@@ -466,29 +445,23 @@ def get_top_favourites(current_user, N):
     top = query.limit(N).all()
 
     result = [{
-    'id': profile.id,
-    'description': profile.description,
-    'parish': profile.parish,
-    'race': profile.race,
-    'sex': profile.sex,
-    'birth_year': profile.birth_year,
-    'photo': profile.user.photo if profile.user else None,
-    'favorite_count': count,
-    'user': {
-        'name': profile.user.name if profile.user else "User",
-        'photo': profile.user.photo if profile.user else None,
-        'date_joined': profile.user.date_joined.isoformat() if profile.user else None
-    }
-} for profile, count in top]
-
+        'id':           profile.id,
+        'description':  profile.description,
+        'parish':       profile.parish,
+        'race':         profile.race,
+        'sex':          profile.sex,
+        'birth_year':   profile.birth_year,
+        'photo':        profile.user.photo if profile.user else None,
+        'favorite_count': count
+    } for profile, count in top]
 
     return jsonify(top_favourites=result)
+
 
 
 ###
 # Error Handlers
 ###
-
 @app.after_request
 def add_header(response):
     response.headers['X-UA-Compatible'] = 'IE=Edge,chrome=1'

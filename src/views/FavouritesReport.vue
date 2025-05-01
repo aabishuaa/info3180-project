@@ -283,7 +283,7 @@ export default {
     },
 
     goToProfile(profileId) {
-      this.$router.push(`/users/${profileId}/profile`);
+      this.$router.push(`/profiles/${profileId}`);
     },
 
     removeFavorite(profileId) {

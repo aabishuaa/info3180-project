@@ -6,56 +6,50 @@
           <input
             type="text"
             v-model="searchParams.name"
-            placeholder="Name"
+            placeholder="Description"
             class="search-input"
           />
           <div class="search-icon">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              fill="currentColor"
-              viewBox="0 0 16 16"
-            >
-              <path
-                d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"
-              />
-            </svg>
+            <i class="bi bi-search"></i>
           </div>
         </div>
         <div class="search-input-group">
           <input
             type="number"
-            v-model="searchParams.birthYear"
+            v-model="searchParams.birth_year"
             placeholder="Birth Year"
             class="search-input"
-            min="1900"
-            max="2010"
+            min="1950"
+            max="2007"
           />
         </div>
         <div class="search-input-group">
           <select v-model="searchParams.sex" class="search-input">
             <option value="">Select Sex</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
           </select>
         </div>
         <div class="search-input-group">
           <select v-model="searchParams.race" class="search-input">
             <option value="">Select Race</option>
-            <option value="asian">Asian</option>
-            <option value="black">Black</option>
-            <option value="hispanic">Hispanic</option>
-            <option value="white">White</option>
-            <option value="other">Other</option>
+            <option value="Asian">Asian</option>
+            <option value="Black">Black</option>
+            <option value="Hispanic">Hispanic</option>
+            <option value="White">White</option>
+            <option value="Indian">Indian</option>
+            <option value="Mixed">Mixed</option>
+            <option value="Other">Other</option>
           </select>
         </div>
       </div>
       <div class="search-buttons">
-        <button type="submit" class="search-btn">Search</button>
+        <button type="submit" class="search-btn">
+          <i class="bi bi-search me-2"></i>Search
+        </button>
         <button type="button" @click="resetSearch" class="reset-btn">
-          Reset
+          <i class="bi bi-x-circle me-2"></i>Reset
         </button>
       </div>
     </form>
@@ -67,7 +61,7 @@ export default {
   name: "SearchBar",
   props: {
     currentUserId: {
-      type: [String, Number, null], // Add null as a valid type
+      type: [String, Number, null],
       default: null,
     },
   },
@@ -75,7 +69,7 @@ export default {
     return {
       searchParams: {
         name: "",
-        birthYear: "",
+        birth_year: "",
         sex: "",
         race: "",
       },
@@ -83,12 +77,20 @@ export default {
   },
   methods: {
     search() {
-      this.$emit("search", this.searchParams);
+      // Create a clean copy of search params, removing empty values
+      const params = {};
+      Object.keys(this.searchParams).forEach((key) => {
+        if (this.searchParams[key]) {
+          params[key] = this.searchParams[key];
+        }
+      });
+
+      this.$emit("search", params);
     },
     resetSearch() {
       this.searchParams = {
         name: "",
-        birthYear: "",
+        birth_year: "",
         sex: "",
         race: "",
       };

@@ -107,45 +107,16 @@
                     <i class="bi bi-eye me-1"></i> View Details
                   </router-link>
 
-                  <button
+                  <router-link
+                    :to="`/matches/${profile.id}`"
                     class="btn btn-primary"
-                    @click="findMatches(profile.id)"
                   >
                     <i class="bi bi-heart me-1"></i> Match Me
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Matches Section -->
-      <div v-if="showMatches" class="mt-4">
-        <div class="section-header mb-3">
-          <h3 class="section-title">Your Matches</h3>
-        </div>
-
-        <div v-if="matches.length > 0" class="row">
-          <div class="col-md-3 mb-4" v-for="match in matches" :key="match.id">
-            <div class="card match-card shadow-sm h-100">
-              <div class="card-body">
-                <h5 class="card-title">Compatible Match</h5>
-                <p class="card-text">{{ match.description }}</p>
-                <div class="card-button-container">
-                  <router-link
-                    :to="`/profiles/${match.id}`"
-                    class="btn btn-primary"
-                  >
-                    <i class="bi bi-eye me-1"></i> View Details
                   </router-link>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-        <div v-else class="alert alert-info">
-          No matches found for your profile.
         </div>
       </div>
     </div>
@@ -165,10 +136,8 @@ export default {
     return {
       user: null,
       profiles: [],
-      matches: [],
       loading: true,
       error: null,
-      showMatches: false,
       csrfToken: "",
       photoFile: null,
       photoKey: Date.now(),
@@ -262,16 +231,6 @@ export default {
             this.uploadError = null;
           }, 5000);
         });
-    },
-
-    async findMatches(id) {
-      this.showMatches = true;
-      try {
-        const res = await apiClient.get(`/api/profiles/matches/${id}`);
-        this.matches = res.data.matches;
-      } catch (err) {
-        console.error(err);
-      }
     },
 
     formatDate(d) {

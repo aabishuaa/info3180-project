@@ -12,9 +12,9 @@
 
     <div v-else class="container py-4">
       <!-- Improved Back navigation -->
-      <router-link :to="`/users/${userId}`" class="back-btn">
-        <i class="bi bi-arrow-left"></i> Back to Profile
-      </router-link>
+      <button @click="goBack" class="back-btn">
+        <i class="bi bi-arrow-left"></i> Back
+      </button>
 
       <div class="card profile-card shadow">
         <!-- Profile header -->
@@ -306,6 +306,9 @@ export default {
     }
   },
   methods: {
+    goBack() {
+      this.$router.back();
+    },
     fetchProfileDetails() {
       const token = localStorage.getItem("token");
       const profileId = this.$route.params.id;
@@ -437,9 +440,18 @@ export default {
     },
 
     formatHeight(h) {
-      const ft = Math.floor(h),
-        inch = Math.round((h - ft) * 12);
-      return `${ft}' ${inch}"`;
+      // Check if the value is likely in inches (above 12)
+      if (h > 12) {
+        // Convert from inches to feet and inches
+        const ft = Math.floor(h / 12);
+        const inch = Math.round(h % 12);
+        return `${ft}' ${inch}"`;
+      } else {
+        // Original logic - assume the value is already in feet
+        const ft = Math.floor(h);
+        const inch = Math.round((h - ft) * 12);
+        return `${ft}' ${inch}"`;
+      }
     },
 
     // Ensure profile action buttons are properly hidden on own profile

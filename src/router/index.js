@@ -6,6 +6,7 @@ import NewProfileView from '../views/NewProfileView.vue';
 import ProfileDetailsView from '../views/ProfileDetailsView.vue';
 import UserProfileView from '../views/UserProfileView.vue';
 import FavouritesView from '../views/FavouritesReport.vue';
+import MatchProfiles from '../views/MatchProfile.vue';
 
 const routes = [
   { path: '/', name: 'home', component: HomeView },
@@ -41,7 +42,15 @@ const routes = [
     name: 'my-profile',
     component: UserProfileView,
     meta: { requiresAuth: true }
+  },
+
+  {
+    path: '/matches/:profile_id',
+    name: 'match-profiles',
+    component: MatchProfiles,
+    meta: { requiresAuth: true }
   }
+  
   
 ];
 

@@ -573,7 +573,15 @@ export default {
         "St. Catherine",
         "Kingston",
       ],
-      races: ["Black", "East Indian", "Chinese", "White", "Mixed", "Other"],
+      races: [
+        "Black",
+        "Indian ",
+        "Asian",
+        "White",
+        "Mixed",
+        "Hispanic",
+        "Other",
+      ],
       cuisines: [
         "Jamaican",
         "Italian",
@@ -650,6 +658,14 @@ export default {
     }
   },
   methods: {
+    handleBack() {
+      const cameFromForm = this.$route.query.from === "new-profile";
+      if (cameFromForm) {
+        this.$router.push(`/users/${localStorage.getItem("user_id")}`);
+      } else {
+        this.$router.back();
+      }
+    },
     updateHeight() {
       if (this.heightFeet !== "" && this.heightInches !== "") {
         this.profile.height =
@@ -897,7 +913,10 @@ export default {
         const profileId = profileData.id;
 
         // Redirect to the profile page
-        this.$router.push(`/profiles/${profileId}`);
+        this.$router.push({
+          path: `/profiles/${profileId}`,
+          query: { from: "new-profile" },
+        });
       } catch (err) {
         console.error("Profile creation error:", err);
         this.error =
