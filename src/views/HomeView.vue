@@ -73,7 +73,7 @@ import apiClient from "@/api.js";
 import defaultProfile from "@/assets/defaultProfileImg.png";
 import jamDateLogo from "@/assets/jamdateLogo.png";
 import ProfileCard from "@/components/ProfileCard.vue";
-import SearchBar from "@/components/SearchBar.vue";
+import SearchBar from "@/components/Searchbar.vue";
 import noProfilesImage from "@/assets/no-profiles.png";
 
 export default {
