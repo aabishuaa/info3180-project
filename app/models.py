@@ -109,4 +109,3 @@ class Favourite(db.Model):
 
     def __repr__(self):
         return f'<Favourite {self.id}: User {self.user_id_fk} -> Profile {self.fav_user_id_fk}>'
-

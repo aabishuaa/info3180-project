@@ -2,36 +2,8 @@
   <header class="site-header navbar navbar-expand-lg">
     <div class="container-fluid">
       <div class="logo-container">
-        <svg width="40" height="40" viewBox="0 0 100 100">
-          <path
-            d="M50,10 C25,10 10,30 10,50 C10,80 40,90 50,90 C60,90 90,80 90,50 C90,30 75,10 50,10 Z"
-            fill="none"
-            stroke="#ffbd0f"
-            stroke-width="4"
-          />
-          <path
-            d="M50,15 C27,15 15,33 15,50 C15,77 42,85 50,85 C58,85 85,77 85,50 C85,33 73,15 50,15 Z"
-            fill="none"
-            stroke="#ff7455"
-            stroke-width="4"
-          />
-          <path
-            d="M50,20 C30,20 20,35 20,50 C20,75 45,80 50,80 C55,80 80,75 80,50 C80,35 70,20 50,20 Z"
-            fill="url(#heartGradient)"
-          />
-          <defs>
-            <linearGradient
-              id="heartGradient"
-              x1="0%"
-              y1="0%"
-              x2="100%"
-              y2="100%"
-            >
-              <stop offset="0%" stop-color="#04acb0" />
-              <stop offset="100%" stop-color="#fb9623" />
-            </linearGradient>
-          </defs>
-        </svg>
+        <img :src="jamDateLogo" alt="Jam-Date Logo" class="logo-img" />
+
         <router-link class="navbar-brand logo-text" to="/"
           >Jam-Date</router-link
         >
@@ -87,6 +59,7 @@
 <script setup>
 import { auth } from "@/auth.js";
 import { useRouter } from "vue-router";
+import jamDateLogo from "@/assets/jamdateLogo.png";
 
 const router = useRouter();
 
@@ -102,6 +75,8 @@ function logout() {
 </script>
 
 <style scoped>
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap");
+
 :root {
   --teal: #04acb0;
   --orange: #fb9623;
@@ -115,6 +90,7 @@ function logout() {
   position: relative;
   z-index: 10;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: "Poppins", sans-serif;
 }
 
 .logo-container {
@@ -128,6 +104,14 @@ function logout() {
   color: white;
   margin-left: 0.5rem;
   text-decoration: none;
+  font-family: "Poppins", sans-serif;
+}
+
+.logo-img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  margin-right: 12px;
 }
 
 .nav-links {
