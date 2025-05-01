@@ -12,7 +12,7 @@ class Config(object):
         raise ValueError("SECRET_KEY is not set in environment variables!")
     
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', './uploads')
-    SQLALCHEMY_DATABASE_URI = os.environ.get['DATABASE_URL']
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_HEADERS = ["X-CSRFToken"]
 
