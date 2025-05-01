@@ -13,6 +13,8 @@ from app.forms import ProfilePhotoForm
 from flask_wtf.csrf import validate_csrf
 from wtforms.validators import ValidationError
 
+
+
 # Secret key for encoding JWT
 SECRET_KEY = app.config['SECRET_KEY']
 
@@ -234,7 +236,28 @@ def add_profile(current_user):
     db.session.add(profile)
     db.session.commit()
 
-    return jsonify(message="Profile created successfully"), 201
+    # ✅ Return full profile object with ID
+    return jsonify({
+        "message": "Profile created successfully",
+        "profile": {
+            "id": profile.id,
+            "user_id_fk": profile.user_id_fk,
+            "description": profile.description,
+            "parish": profile.parish,
+            "biography": profile.biography,
+            "sex": profile.sex,
+            "race": profile.race,
+            "birth_year": profile.birth_year,
+            "height": profile.height,
+            "fav_cuisine": profile.fav_cuisine,
+            "fav_colour": profile.fav_colour,
+            "fav_school_subject": profile.fav_school_subject,
+            "political": profile.political,
+            "religious": profile.religious,
+            "family_oriented": profile.family_oriented
+        }
+    }), 201
+
 
 @app.route('/api/profiles/<int:profile_id>', methods=['GET'])
 @token_required
@@ -289,9 +312,10 @@ def favourite_profile(current_user, user_id):
 @app.route('/api/profiles/matches/<int:profile_id>', methods=['GET'])
 @token_required
 def get_matches(current_user, profile_id):
-    # load the “source” profile
+    # Load the reference profile
     me = Profile.query.get_or_404(profile_id)
-    # grab every other profile (and not your own user)
+
+    # Fetch all candidate profiles (exclude own user + same profile)
     candidates = Profile.query.filter(
         Profile.id != me.id,
         Profile.user_id_fk != current_user.id
@@ -299,39 +323,41 @@ def get_matches(current_user, profile_id):
 
     results = []
     for p in candidates:
-        # 1) age within 5 years
+        # 1. Age difference within 5 years
         age_ok = abs(me.birth_year - p.birth_year) <= 5
 
-        # 2) same user filtered out above
+        # 2. Same user already excluded above
 
-        # 3) height difference in inches (height stored as float feet)
+        # 3. Height difference between 3–10 inches (convert feet to inches)
         height_diff_inches = abs(me.height - p.height) * 12
         height_ok = 3 <= height_diff_inches <= 10
 
-        # 4) count matches of the six fields
+        # 4. Match on at least 3 of the 6 fields
         field_matches = sum([
-            me.fav_cuisine       == p.fav_cuisine,
-            me.fav_colour        == p.fav_colour,
-            me.fav_school_subject== p.fav_school_subject,
-            me.political         == p.political,
-            me.religious         == p.religious,
-            me.family_oriented   == p.family_oriented,
+            me.fav_cuisine == p.fav_cuisine,
+            me.fav_colour == p.fav_colour,
+            me.fav_school_subject == p.fav_school_subject,
+            me.political == p.political,
+            me.religious == p.religious,
+            me.family_oriented == p.family_oriented
         ])
         fields_ok = field_matches >= 3
 
+        # Final filter
         if age_ok and height_ok and fields_ok:
             results.append({
-                'id':           p.id,
-                'description':  p.description,
-                'parish':       p.parish,
-                'sex':          p.sex,
-                'race':         p.race,
-                'birth_year':   p.birth_year,
-                'height':       p.height,
-                'matches':      field_matches
+                'id': p.id,
+                'description': p.description,
+                'parish': p.parish,
+                'sex': p.sex,
+                'race': p.race,
+                'birth_year': p.birth_year,
+                'height': p.height,
+                'matches': field_matches
             })
 
     return jsonify(matches=results)
+
 
 
 @app.route('/api/search', methods=['GET'])
@@ -405,15 +431,21 @@ def get_user_favourites(current_user, user_id):
             continue
 
         favs.append({
-            'id': p.id,
-            'description': p.description,
-            'parish': p.parish,
-            'sex': p.sex,
-            'race': p.race,
-            'birth_year': p.birth_year,
-            'height': p.height,
-            'photo': p.user.photo if p.user else None,
-        })
+    'id': p.id,
+    'description': p.description,
+    'parish': p.parish,
+    'sex': p.sex,
+    'race': p.race,
+    'birth_year': p.birth_year,
+    'height': p.height,
+    'photo': p.user.photo if p.user else None,
+    'user': {
+        'name': p.user.name if p.user else "User",
+        'photo': p.user.photo if p.user else None,
+        'date_joined': p.user.date_joined.isoformat() if p.user else None
+    }
+})
+
 
     return jsonify(favourites=favs)
 
@@ -433,20 +465,24 @@ def get_top_favourites(current_user, N):
 
     top = query.limit(N).all()
 
-    # return 'id' instead of only 'profile_id'
     result = [{
-        'id':           profile.id,
-        'description':  profile.description,
-        'parish':       profile.parish,
-        'race':         profile.race,
-        'sex':          profile.sex,
-        'birth_year':   profile.birth_year,
-        'photo':        profile.user.photo if profile.user else None,
-        'favorite_count': count
-    } for profile, count in top]
+    'id': profile.id,
+    'description': profile.description,
+    'parish': profile.parish,
+    'race': profile.race,
+    'sex': profile.sex,
+    'birth_year': profile.birth_year,
+    'photo': profile.user.photo if profile.user else None,
+    'favorite_count': count,
+    'user': {
+        'name': profile.user.name if profile.user else "User",
+        'photo': profile.user.photo if profile.user else None,
+        'date_joined': profile.user.date_joined.isoformat() if profile.user else None
+    }
+} for profile, count in top]
+
 
     return jsonify(top_favourites=result)
-
 
 
 ###
