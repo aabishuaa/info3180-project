@@ -457,7 +457,20 @@ def get_top_favourites(current_user, N):
 
     return jsonify(top_favourites=result)
 
+###
+# Render
+###
+from flask import Blueprint
 
+frontend = Blueprint('frontend', __name__)
+
+@frontend.route('/', defaults={'path': ''})
+@frontend.route('/<path:path>')
+def serve_vue(path):
+    if path != "" and os.path.exists("dist/" + path):
+        return send_from_directory('dist', path)
+    else:
+        return send_from_directory('dist', 'index.html')
 
 ###
 # Error Handlers
