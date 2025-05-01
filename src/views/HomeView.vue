@@ -1,7 +1,7 @@
 <template>
   <div class="home">
-    <!-- Hero Section with Sparkles -->
-    <section class="hero">
+    <!-- Hero Section - Only show when NOT authenticated -->
+    <section v-if="!isAuthenticated" class="hero">
       <div class="sparkle-container">
         <div v-for="n in 50" :key="n" class="sparkle"></div>
       </div>
@@ -13,54 +13,56 @@
           matches based on interests, preferences, and personalities.
         </p>
         <div class="btn-container">
-          <template v-if="!isAuthenticated">
-            <router-link to="/register" class="btn btn-primary"
-              >Sign Up</router-link
-            >
-            <router-link to="/login" class="btn btn-outline">Login</router-link>
-          </template>
-          <template v-else>
-            <router-link :to="`/users/${userId}`" class="btn btn-primary">
-              View Your Profile
-            </router-link>
-          </template>
+          <router-link to="/register" class="btn btn-primary"
+            >Sign Up</router-link
+          >
+          <router-link to="/login" class="btn btn-outline">Login</router-link>
         </div>
       </div>
     </section>
 
-    <!-- Profiles Section -->
-    <section class="profiles-section" v-if="isAuthenticated">
-      <h2 class="section-title" v-if="profilesToShow.length">
-        Latest Profiles
-      </h2>
-
-      <div class="profiles-grid" v-if="profilesToShow.length">
-        <div
-          class="profile-card"
-          v-for="profile in profilesToShow"
-          :key="profile.id"
-        >
-          <img
-            :src="
-              profile.photo
-                ? `${uploadBase}/api/uploads/${profile.photo}`
-                : defaultProfile
-            "
-            :alt="profile.user?.name || 'Profile'"
-            class="profile-img"
-          />
-          <div class="profile-details">
-            <h3 class="profile-name">{{ profile.user?.name || "User" }}</h3>
-            <p class="profile-description">{{ profile.description }}</p>
-            <router-link :to="`/profiles/${profile.id}`" class="profile-link">
-              View Profile
-            </router-link>
-          </div>
-        </div>
+    <!-- Profiles Section (only if logged in) -->
+    <section v-if="isAuthenticated" class="profiles-section">
+      <div class="dashboard-header">
+        <h1 class="dashboard-title">Find Your Match</h1>
       </div>
 
+      <div class="search-container">
+        <SearchBar
+          :currentUserId="userId"
+          @search="handleSearch"
+          @reset="resetSearch"
+        />
+      </div>
+
+      <div class="profiles-header">
+        <h2 class="section-title" v-if="profilesToShow.length">
+          <span v-if="isSearching">Search Results</span>
+          <span v-else>Latest Profiles</span>
+        </h2>
+      </div>
+      <div class="profiles-grid" v-if="profilesToShow.length">
+        <ProfileCard
+          v-for="profile in profilesToShow"
+          :key="profile.id"
+          :id="profile.id"
+          :name="profile.user?.name"
+          :description="profile.description"
+          :photo="profile.photo"
+        />
+      </div>
       <div class="empty-state" v-else>
-        <p>No profiles found.</p>
+        <img :src="noProfilesImage" alt="No profiles" class="empty-state-img" />
+        <h3>No profiles found</h3>
+        <p v-if="isSearching">Try adjusting your search criteria</p>
+        <p v-else>Check back later for new matches</p>
+        <button
+          v-if="isSearching"
+          class="btn btn-primary empty-state-btn"
+          @click="resetSearch"
+        >
+          Reset Search
+        </button>
       </div>
     </section>
   </div>
@@ -70,24 +72,30 @@
 import apiClient from "@/api.js";
 import defaultProfile from "@/assets/defaultProfileImg.png";
 import jamDateLogo from "@/assets/jamdateLogo.png";
+import ProfileCard from "@/components/ProfileCard.vue";
+import SearchBar from "@/components/SearchBar.vue";
+import noProfilesImage from "@/assets/no-profiles.png";
 
 export default {
   name: "HomeView",
+  components: {
+    ProfileCard,
+    SearchBar,
+  },
   data() {
     return {
+      noProfilesImage,
       jamDateLogo,
-      allProfiles: [], // full list for searching
-      latestProfiles: [], // the 4 most recent
-      searchResults: [],
+      allProfiles: [],
+      filteredProfiles: [],
       userId: null,
+      userProfile: null,
+      isSearching: false,
     };
   },
   computed: {
     isAuthenticated() {
       return !!localStorage.getItem("token");
-    },
-    profilesToShow() {
-      return this.latestProfiles;
     },
     uploadBase() {
       return apiClient.defaults.baseURL;
@@ -95,28 +103,65 @@ export default {
     defaultProfile() {
       return defaultProfile;
     },
+    profilesToShow() {
+      return this.isSearching ? this.filteredProfiles : this.allProfiles;
+    },
   },
   mounted() {
     this.userId = localStorage.getItem("user_id");
     if (this.isAuthenticated) {
       this.fetchProfiles();
+      this.fetchUserProfile();
+    } else {
+      this.createSparkleEffect();
     }
-    this.createSparkleEffect();
   },
   methods: {
     fetchProfiles() {
       const me = parseInt(this.userId, 10);
       apiClient
-        .get("/api/profiles", { params: { limit: 4 } })
+        .get("/api/profiles")
         .then((res) => {
           this.allProfiles = (res.data.profiles || res.data).filter(
             (p) => p.user_id_fk !== me
           );
-          this.latestProfiles = this.allProfiles; // already only 4
         })
         .catch(console.error);
     },
+    fetchUserProfile() {
+      if (!this.userId) return;
 
+      apiClient
+        .get(`/api/users/${this.userId}`)
+        .then((res) => {
+          this.userProfile = res.data;
+        })
+        .catch(console.error);
+    },
+    handleSearch(searchParams) {
+      const queryString = new URLSearchParams(searchParams).toString();
+
+      // ✅ Debug the full API URL
+      console.log("Search URL:", `/api/search?${queryString}`);
+
+      apiClient
+        .get(`/api/search?${queryString}`)
+        .then((res) => {
+          this.filteredProfiles = res.data.results || [];
+
+          this.isSearching = true;
+        })
+        .catch((err) => {
+          console.error("Search failed:", err);
+          this.filteredProfiles = [];
+          this.isSearching = false;
+        });
+    },
+
+    resetSearch() {
+      this.filteredProfiles = [];
+      this.isSearching = false;
+    },
     createSparkleEffect() {
       const container = document.querySelector(".sparkle-container");
       if (!container) return;
@@ -137,7 +182,6 @@ export default {
   },
 };
 </script>
-
 <style scoped>
 /* Import Poppins font */
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap");
@@ -308,10 +352,54 @@ export default {
 
 /* Profiles Section */
 .profiles-section {
-  padding: 6rem 2rem;
+  padding: 2rem;
   background: #f9fafb;
   position: relative;
   z-index: 5;
+  min-height: 100vh;
+}
+
+/* Dashboard header */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-title {
+  font-size: 2.2rem;
+  color: var(--teal);
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(45deg, var(--teal), var(--coral));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.user-welcome {
+  padding: 0.75rem 1.5rem;
+  background: white;
+  border-radius: 50px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  font-size: 1.1rem;
+  color: #555;
+}
+
+.user-welcome strong {
+  color: var(--teal);
+}
+
+/* Profiles header with filters */
+.profiles-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .section-title {
@@ -339,66 +427,10 @@ export default {
 .profiles-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2.5rem;
-  max-width: 1200px;
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1100px;
   margin: 0 auto;
-}
-
-.profile-card {
-  background: white;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
-  transition: all 0.4s ease;
-  position: relative;
-}
-
-.profile-card:hover {
-  transform: translateY(-12px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
-}
-
-.profile-img {
-  width: 100%;
-  height: 220px;
-  object-fit: cover;
-  background: #f8f9fa;
-  border-bottom: 1px solid #eee;
-}
-
-.profile-details {
-  padding: 1.8rem;
-}
-
-.profile-name {
-  font-size: 1.5rem;
-  color: var(--teal);
-  margin-bottom: 0.7rem;
-  font-weight: 600;
-}
-
-.profile-description {
-  color: #555;
-  margin-bottom: 1.8rem;
-  line-height: 1.6;
-  font-size: 1.05rem;
-}
-
-.profile-link {
-  display: inline-block;
-  background: linear-gradient(45deg, var(--teal), var(--coral));
-  color: white;
-  padding: 0.7rem 1.5rem;
-  border-radius: 50px;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 10px rgba(4, 172, 176, 0.2);
-}
-
-.profile-link:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 15px rgba(4, 172, 176, 0.3);
 }
 
 .empty-state {
@@ -407,6 +439,15 @@ export default {
   color: #888;
   font-size: 1.3rem;
   font-weight: 300;
+}
+
+.empty-state-img {
+  max-width: 220px;
+  width: 100%;
+  height: auto;
+  margin: 0 auto 1rem;
+  display: block;
+  opacity: 0.8;
 }
 
 /* Responsive Styles */
