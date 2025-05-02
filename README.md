@@ -1,11 +1,6 @@
-Thought for a second
-
-````markdown
 # Jam-Date
 
-A full-stack dating application built with **Flask** (Python) on the backend and **Vue 3** on the frontend. Users can register, maintain up to three distinct “profiles” (each with its own photo and preferences), browse the most recent profiles, search by multiple criteria, and click **Match Me** to discover compatible matches based on age, height, and shared interests.
-
----
+A full-stack dating application built with **Flask** (Python) on the backend and **Vue 3** on the frontend. Users can register, maintain up to three distinct "profiles" (each with its own photo and preferences), browse the most recent profiles, search by multiple criteria, and click **Match Me** to discover compatible matches based on age, height, and shared interests.
 
 ## Features
 
@@ -29,16 +24,12 @@ A full-stack dating application built with **Flask** (Python) on the backend and
   - Manage your personal favorites
 - **Deployed on Render.com** with managed PostgreSQL, Flask Web Service, and Vue Static Site
 
----
-
 ## 🛠 Tech Stack
 
 - **Backend**: Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-WTForms, Flask-CORS
 - **Database**: PostgreSQL
 - **Frontend**: Vue 3, Vue Router, Axios, Vite, Bootstrap 5
 - **Deployment**: Render.com
-
----
 
 ## Quickstart
 
@@ -48,7 +39,6 @@ A full-stack dating application built with **Flask** (Python) on the backend and
 git clone https://github.com/your-org/jam-date.git
 cd jam-date
 ```
-````
 
 ### 2. Backend setup
 
@@ -86,8 +76,6 @@ npm run dev
 
 Open `http://localhost:5173` in your browser.
 
----
-
 ## ⚙️ Environment Variables
 
 #### Backend (`backend/.env`)
@@ -104,8 +92,6 @@ FRONTEND_URL=http://localhost:5173
 VITE_API_BASE_URL=http://127.0.0.1:5000
 ```
 
----
-
 ## Database Migrations
 
 Whenever you change your models:
@@ -115,8 +101,6 @@ cd backend
 flask db migrate -m "Describe changes"
 flask db upgrade
 ```
-
----
 
 ## 📡 Deployment on Render
 
@@ -156,8 +140,6 @@ flask db upgrade
 
 Render will automatically build and deploy on each push.
 
----
-
 ## 🔗 API Reference
 
 | Method | Endpoint                                   | Description                             |
@@ -165,7 +147,7 @@ Render will automatically build and deploy on each push.
 | POST   | `/api/register`                            | Register a new user                     |
 | POST   | `/api/auth/login`                          | Log in (returns JWT & user_id)          |
 | GET    | `/api/csrf-token`                          | Fetch CSRF token                        |
-| POST   | `/api/users/<id>/photo`                    | Upload a user’s profile photo           |
+| POST   | `/api/users/<id>/photo`                    | Upload a user's profile photo           |
 | GET    | `/api/uploads/<filename>`                  | Serve uploaded photo                    |
 | GET    | `/api/users/<id>`                          | Get user details & their profiles       |
 | GET    | `/api/profiles?limit=N`                    | List latest N profiles (excluding self) |
@@ -177,8 +159,6 @@ Render will automatically build and deploy on each push.
 | GET    | `/api/users/favourites/<N>`                | Get top-N favourited profiles           |
 | POST   | `/api/profiles/<id>/favourite`             | Add a profile to your favourites        |
 
----
-
 ## License
 
 This project is licensed under **MIT**. See [LICENSE](LICENSE) for details.
@@ -186,7 +166,3 @@ This project is licensed under **MIT**. See [LICENSE](LICENSE) for details.
 ---
 
 ❤️ Happy matching!
-
-```
-
-```
