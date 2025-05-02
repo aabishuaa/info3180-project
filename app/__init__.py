@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -13,9 +14,11 @@ app.config.from_object(Config)
 csrf = CSRFProtect(app)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-CORS(app,
-     resources={ r"/api/*": {"origins": "http://localhost:5173"} },
-     supports_credentials=True)
+frontend = os.environ.get('FRONTEND_URL')
+if frontend:
+    CORS(app, origins=[frontend], supports_credentials=True)
+else:
+    CORS(app, origins="*", supports_credentials=True)
 
 from app.views import frontend
 app.register_blueprint(frontend)
